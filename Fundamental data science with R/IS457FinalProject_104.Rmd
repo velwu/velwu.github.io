@@ -1,0 +1,655 @@
+---
+title: "IS 457 Final Project"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook created by the student going by Class ID 104 as part of the IS457	Final	Project	-	Fall	2019.
+
+This document is done using R Version 3.6.1 (2019-07-05) and R Studio Version 1.2.1335.
+
+```{r}
+# Q1: 
+
+finalProjData = read.csv("D:/UIUC MISM Studies/2019 Fall Courses/IS 457 Intro Data Sci/Assignments/Final/Austin_Lots.csv")
+
+summary(finalProjData)
+dim(finalProjData)
+projDataSubsetted = subset(finalProjData, 
+                           select = -c(created_by, date_creat, modified_b, GEOID))
+dim(projDataSubsetted)
+
+library(plyr)
+projDataRenamed <- rename(projDataSubsetted, c(
+  "block_id"="id_block",
+  "land_base_"="id_austin_DB", 
+  "land_base1" = "land_type",
+  "lot_id" = "id_lot",
+  "date_modif" = "date_modified",
+  "objectid" = "id_sec",
+  "City_dist" = "dis_m_city_center", 
+  "Airpt_dist" = "dis_m_intl_airpt", 
+  "district" = "dist_number", 
+  "Shape_Area" = "area_parcel_m2", 
+  "zoning_o_3" = "code_zoning", 
+  "zcta5ce10" = "code_zip",
+  "LAND_USE_2" = "code_land_use_spec",
+  "GENERAL_LA" = "code_land_use_inv",
+  "EWC_dist" = "dis_m_EWC",
+  "NSC_dist" = "dis_m_NSC", 
+  "Mopac_dist" = "dis_m_Mopac", 
+  "X130_dist" = "dis_m_high130", 
+  "X35_dist" = "dis_m_inter35", 
+  "ExTrail_1m" = "num_1mi_ex_trail", 
+  "PpTrail_1m" = "num_1mi_pp_trail", 
+  "conf" = "lvl_bike_comf", 
+  "bike_lanes" = "num_1mi_bike_ln", 
+  "Bus_area" = "bool_bus_sys",
+  "TotBdgArea" = "area_total_bldgs", 
+  "Num_Bldgs" = "num_bldgs_on_parcel", 
+  "MaxBdgArea" = "area_largest_bldg",
+  "tax_break2" = "pct_tx_brk_dist", 
+  "bk_tx_brk" = "pct_tx_brk_block", 
+  "Housing__" = "idx_housing_opp", 
+  "Education" = "idx_ed_opp", 
+  "Economic__" = "idx_econ_opp", 
+  "Comprehens" = "idx_comp_opp", 
+  "Med_HH_Inc" = "med_HHI_perzip", 
+  "Med_rent" = "med_rent_perzip",
+  "Med_home" = "med_home_price_perzip",
+  "Aff_rent_t" = "pct_aff_units_perzip",
+  "Aff_own_te" = "pct_aff_homes_perzip",
+  "Descriptio" = "descr_const_nearby"
+  ))
+
+```
+```{r}
+# Q2: 
+
+# 2.1
+#columnsWithNA <- colnames(projDataRenamed)[colSums(is.na(projDataRenamed)) > 0]
+#print(columnsWithNA)
+
+allMissingColumns <- sapply(projDataRenamed, function(x) any(is.na(x) | x == "-" | x == "N/A" | x == "NA" | x == "" | x == " "))
+allcolumnNamesWhichMiss <- names(allMissingColumns[allMissingColumns>0])    
+print("columns with any values containing NA, empty string, string-fied NA, stringfied NA, or hyphen") 
+print(allcolumnNamesWhichMiss)
+
+```
+```{r}
+# 2.4
+
+unwantedValues = c("-", "N/A", "NA", "", " ")
+pj <- projDataRenamed
+
+projDataCleansed1 <- pj[!(
+  # Delete rows with unwanted qualitative values
+  is.na(pj$id_lot) | pj$id_lot %in% unwantedValues | 
+  is.na(pj$code_zoning) | pj$code_zoning %in% unwantedValues |
+  is.na(pj$idx_housing_opp) | pj$idx_housing_opp %in% unwantedValues | 
+  is.na(pj$idx_ed_opp) | pj$idx_ed_opp %in% unwantedValues | 
+  is.na(pj$idx_econ_opp) | pj$idx_econ_opp %in% unwantedValues |
+  is.na(pj$idx_comp_opp) | pj$idx_comp_opp %in% unwantedValues |
+  is.na(pj$land_type) | pj$land_type %in% unwantedValues |
+  # Delete rows with unwanted quantitative values
+  is.na(pj$med_HHI_perzip) | pj$med_HHI_perzip %in% unwantedValues |
+  is.na(pj$pct_aff_units_perzip) | pj$pct_aff_units_perzip %in% unwantedValues |
+  is.na(pj$pct_aff_homes_perzip) | pj$pct_aff_homes_perzip %in% unwantedValues |
+  is.na(pj$med_rent_perzip) | pj$med_rent_perzip %in% unwantedValues |
+  is.na(pj$med_home_price_perzip) | pj$med_home_price_perzip %in% unwantedValues), ]
+
+#assign "Not Applicable" labels to missing Block IDs
+projDataCleansed1$id_block[projDataCleansed1$id_block %in% unwantedValues] <- NA
+projDataCleansed1$date_modified[projDataCleansed1$date_modified %in% unwantedValues] <- NA
+projDataCleansed1$land_type[projDataCleansed1$land_type %in% unwantedValues] <- NA
+projDataCleansed1$descr_const_nearby[projDataCleansed1$descr_const_nearby %in% unwantedValues] <- NA
+
+dim(projDataCleansed1)
+View(projDataCleansed1)
+head(projDataCleansed1)
+```
+```{r}
+#Q3:
+
+# 3.1
+
+table(projDataCleansed1$land_type)
+
+```
+
+
+```{r}
+# 3.2
+class(projDataCleansed1$land_type)
+levels(projDataCleansed1$land_type)
+
+projDataCleansed1$land_type[projDataCleansed1$land_type == "Lot" ] <- "LOT"
+projDataCleansed1$land_type[projDataCleansed1$land_type == "lott" ] <- "LOT"
+projDataCleansed1$land_type[projDataCleansed1$land_type == "Parcel" ] <- "PARCEL"
+projDataCleansed1$land_type[projDataCleansed1$land_type == "Lot" ] <- "LOT"
+c
+
+table(projDataCleansed1$land_type)
+
+```
+```{r}
+# 3.3
+class(projDataCleansed1$pct_tx_brk_dist)
+table(projDataCleansed1$pct_tx_brk_dist)
+```
+```{r}
+# 3.3 cont
+
+
+pct_tx_brk_dist <- sapply(projDataCleansed1, is.factor) 
+projDataCleansed1[pct_tx_brk_dist] <- lapply(projDataCleansed1[pct_tx_brk_dist], function(x) 
+                            as.factor(gsub("\\$", "", x)))
+
+projDataCleansed2 <- transform(projDataCleansed1, pct_tx_brk_dist = as.numeric(paste(pct_tx_brk_dist)))
+
+table(projDataCleansed2$pct_tx_brk_dist)
+
+```
+```{r}
+# 3.4
+
+table(finalProjData$GEOID)
+
+```
+
+```{r}
+# 3.5
+projDataCleansed2$FID[duplicated(projDataCleansed2$FID)]
+projDataCleansed2$id_austin_DB[duplicated(projDataCleansed2$id_austin_DB)]
+
+projDataCleansed2[projDataCleansed2$FID == 376,]
+
+projDataCleansed3 <- projDataCleansed2[!duplicated(projDataCleansed2), ]
+
+dim(projDataCleansed2)
+dim(projDataCleansed3)
+
+```
+```{r}
+# 3.6
+projDataCleansed4 <- subset(projDataCleansed3, select = -c(code_land_use_spec))
+dim(projDataCleansed4)
+head(projDataCleansed4)
+```
+
+```{r}
+# Q4:
+
+# 4.1
+sapply(projDataCleansed4, class)
+
+```
+
+```{r}
+# 4.3
+
+projDataCleansed5 <- projDataCleansed4
+pctTobeConverted <- c("pct_aff_units_perzip", "pct_aff_homes_perzip")
+projDataCleansed5[pctTobeConverted] <- lapply(projDataCleansed5[pctTobeConverted], as.numeric)
+head(projDataCleansed5)
+sapply(projDataCleansed5, class)
+
+```
+
+```{r}
+# Q5
+summary(projDataCleansed5)
+
+```
+```{r}
+# Q6
+
+# 6.1
+library(plotrix)
+require(plotrix)
+distanceToPlaces <- list(
+          projDataCleansed5$dis_m_city_center,
+          projDataCleansed5$dis_m_EWC,
+          projDataCleansed5$dis_m_high130, 
+          projDataCleansed5$dis_m_inter35, 
+          projDataCleansed5$dis_m_intl_airpt, 
+          projDataCleansed5$dis_m_NSC, 
+          projDataCleansed5$dis_m_Mopac)
+
+colorsForMultiHist7 = c(
+  "red", 
+  "dark orange", 
+  "gold", 
+  "green", 
+  "light blue", 
+  "dark blue", 
+  "purple")
+
+namesForThese7 = c(
+  "City Center", 
+  "East-West Connector Highway",
+  "Highway 130", 
+  "Interstate 35", 
+  "International Airport", 
+  "North-South Connector Highway", 
+  "Mopac Freeway")
+
+
+par(mar=c(5.1, 4.1, 4.1, 8.1), xpd=TRUE)
+
+multhist(distanceToPlaces, col= colorsForMultiHist7, 
+  main = "Distances to Landmarks in histograms", 
+  xlab = "Distance in meters", 
+  ylab = "Numbers of parcels",
+  color.legend = colorsForMultiHist7)
+legend("topright", namesForThese7, 
+       col = colorsForMultiHist7, lwd = 7, 
+       title = "Landmarks", 
+       inset=c(-0.3,0))
+
+
+par(mar=c(5.1, 4.1, 4.1, 13.1), xpd=TRUE)
+
+boxplot(distanceToPlaces,
+main="Distance to Landmarks in boxplots",
+xlab = "Places", ylab = "Distances",
+col=colorsForMultiHist7,
+border="black"
+)
+
+legend(8, 15000,
+       namesForThese7,
+       title = "Landmarks",
+       col = colorsForMultiHist7,
+       cex = 0.8,
+       lwd = 7, lty = 1)
+
+
+library(MASS)
+
+redIsBadBlueIsGood <- c("Light Blue", "Dark Orange", "Gold", "Dark Blue", "Red")
+redIsBadBlueIsGood2 <- c("Dark Orange", "Gold", "Red", "Light Blue", "Dark Blue")
+
+pie(table(projDataCleansed5$idx_econ_opp), main = "Pie Chart for Opportunity Indexes: Economic", 
+    col = redIsBadBlueIsGood)
+pie(table(projDataCleansed5$idx_housing_opp), main = "Pie Chart for Opportunity Indexes: Housing", 
+    col = redIsBadBlueIsGood2)
+pie(table(projDataCleansed5$idx_ed_opp), main = "Pie Chart for Opportunity Indexes: Education", 
+    col = redIsBadBlueIsGood)
+pie(table(projDataCleansed5$idx_comp_opp), main = "Pie Chart for Opportunity Indexes: Comprhensive", 
+    col = redIsBadBlueIsGood)
+
+```
+
+```{r}
+# Q7s
+
+# 7.1
+cor(projDataCleansed5$lvl_bike_comf, projDataCleansed5$num_1mi_bike_ln)
+cov(projDataCleansed5$lvl_bike_comf, projDataCleansed5$num_1mi_bike_ln)
+
+require(stats)
+reg <- lm(lvl_bike_comf ~ num_1mi_bike_ln, data = projDataCleansed5)
+coeff=coefficients(reg)
+summary(reg)
+
+plot(projDataCleansed5$lvl_bike_comf, projDataCleansed5$num_1mi_bike_ln, 
+     main = "Numbers and comfort levels of bike lanes", 
+     xlab = "Average Bike Lane Comfort Level", 
+     ylab = "Number of Lanes within 1 mile of parcel")
+
+abline(reg, col="red")
+
+```
+```{r}
+# 7.2
+require(stats)
+cor(projDataCleansed5$num_1mi_ex_trail, projDataCleansed5$med_rent_perzip)
+reg1 <- lm(num_1mi_ex_trail ~ med_rent_perzip, data = projDataCleansed5)
+coeff = coefficients(reg1)
+summary(reg1)
+
+plot(projDataCleansed5$num_1mi_ex_trail, projDataCleansed5$med_rent_perzip, 
+     main = "Numbers of Urban Trails and Median Rent Per Zip", 
+     xlab = "Numbers of Urban Trails", 
+     ylab = "Median Rent Per Zip")
+abline(reg1, col="blue")
+
+
+cor(projDataCleansed5$dis_m_high130, projDataCleansed5$dis_m_inter35)
+reg2 <- lm(dis_m_high130 ~ dis_m_inter35, data = projDataCleansed5)
+coeff2 = coefficients(reg2)
+summary(reg2)
+
+plot(projDataCleansed5$dis_m_high130, projDataCleansed5$dis_m_inter35, 
+     main = "Distances to Highway 130 and Interstate 35",
+     xlab = "Distance to Highway 130", 
+     ylab = "Distance to Interstate 35")
+abline(reg2, col = "magenta")
+
+
+cor(projDataCleansed5$dis_m_NSC, projDataCleansed5$med_home_price_perzip)
+reg3 <- lm(dis_m_NSC ~ med_home_price_perzip, data = projDataCleansed5)
+coeff3 = coefficients(reg3)
+summary(reg3)
+plot(projDataCleansed5$dis_m_NSC, projDataCleansed5$med_home_price_perzip, 
+     main = "Distances to North-South Connector Highway and Median Home Price per ZIP",
+     xlab = "Distance to North-South Connector Highway", 
+     ylab = "Median Home Price per ZIP")
+abline(reg3, col = "green")
+
+
+```
+```{r}
+# Q8
+# 8.1
+projDataCleansed5$descr_const_nearby <- tolower(projDataCleansed5$descr_const_nearby)
+View(projDataCleansed5)
+
+```
+
+```{r}
+# 8.2
+library(tm)
+stopwordsForNow = c("a", "about", "across", "after", "all", "almost", "also", "am", "among", "an", "and", "any", "are", "as", "at", "be", "because", "been", "but", "by", "can", "cannot", "could", "dear", "did", "do", "does", "either", "else", "ever", "7 every", "for", "from", "get", "got", "had", "has", "have", "he", "her", "hers", "him", "his", "how", "however", "i", "if", "in", "into", "is", "it", "its", "just", "least", "let", "like", "likely", "may", "me", "might", "most", "must", "my", "neither", "no", "nor", "not", "of", "off", "often", "on", "only", "or", "other", "our", "own", "rather", "said", "say", "says", "she", "should", "since", "so", "some", "than", "that", "the", "their", "them", "then", "there", "these", "they", "this", "is", "to", "too", "was", "us", "wants", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why", "will", "with", "would", "yet", "you", "your")
+
+textMined1 <- removeWords(projDataCleansed5$descr_const_nearby, stopwordsForNow)
+TMResult1 <- sort(table(textMined1), decreasing = TRUE)[1:10]
+TMResult1
+
+```
+```{r}
+# 8.3
+library(tm)
+textMined2 <- removeWords(projDataCleansed5$descr_const_nearby, stopwordsForNow)
+textMined2 <- strsplit(textMined2, " ", fixed = T)
+words2 <- unlist(textMined2)
+TMResult2 <- sort(table(words2), decreasing = TRUE)[2:11]
+TMResult2
+
+```
+
+```{r}
+# 9.1
+
+projDataFiltered1 <- projDataCleansed5[which(projDataCleansed5$bool_bus_sys != 0),]
+dim(projDataCleansed5)
+dim(projDataFiltered1)
+head(projDataFiltered1)
+```
+```{r}
+# 9.2
+projDataFiltered2 <- projDataFiltered1[which(projDataFiltered1$area_parcel_m2 >= 300),]
+dim(projDataFiltered1)
+dim(projDataFiltered2)
+head(projDataFiltered2)
+
+```
+```{r}
+# 9.3
+
+residentialLands = c("LA", "RR", "SF-1", "SF-2", "SF-3", "SF-4A", "SF-4B", "SF-5", "SF-6", "MF-1", "MF-2", "MF-3", "MF-4", "MF-5", "MF-6", "MH")
+
+projDataFiltered3 = subset(projDataFiltered2, !(code_zoning %in% residentialLands))
+dim(projDataFiltered2)
+dim(projDataFiltered3)
+head(projDataFiltered3)
+
+```
+
+```{r}
+# 10.1 & 10.2
+
+# Preferences: With Function Usage
+library(data.table)
+rankParcelsWithPref <- function(x, y){
+  #Function: Give scores to each parcel in the dataset according to how much they match preference specified by the client.
+  # Input 1: x; a dataframe comforming to the standards of Austin parcel record database
+  # Input 2: y; an integer denoting how many records should be shown after ranking
+  # Output: A list of parcels which is a subset of the input dataframe
+
+  # 1. An undeveloped site is preferred
+  x$rank_pref1 <- x$code_land_use_inv == 900
+  
+  # 2. Ease of access to a major interstate or highway is preferred
+  x$rank_pref2A <- x$dis_m_EWC + x$dis_m_NSC + x$dis_m_Mopac + x$dis_m_high130 + x$dis_m_inter35 < mean(x$dis_m_EWC + x$dis_m_NSC + x$dis_m_Mopac + x$dis_m_high130 + x$dis_m_inter35)
+  
+  x$rank_pref2B <- x$dis_m_EWC + x$dis_m_NSC + x$dis_m_Mopac + x$dis_m_high130 + x$dis_m_inter35 < quantile(x$dis_m_EWC + x$dis_m_NSC + x$dis_m_Mopac + x$dis_m_high130 + x$dis_m_inter35, 0.25)
+  
+  # 3. Easy access to the site by bike or foot is preferred
+  # Improvement required: No existing variable can represent convenience on foot
+  x$rank_pref3A <- x$num_1mi_bike_ln >= median(x$num_1mi_bike_ln)
+  x$rank_pref3B <- x$num_1mi_bike_ln >= quantile(x$num_1mi_bike_ln, 0.75)
+  # 4. Close access to green spaces and areas that offer opportunities for employee enrichment (such as concerts, public lectures, swimming pools, leisure areas…) is preferred
+  # Improvement required: Only open spaces are represented thus far. No known variable can convey green spaces and areas for enrichment.
+  x$rank_pref4A <- x$area_total_bldgs < mean(x$area_total_bldgs)
+  x$rank_pref4B <- x$area_total_bldgs < quantile(x$area_total_bldgs, 0.25)
+  
+  # 5. Higher tax breaks or discounts at both the district and block levels is preferred
+  x$rank_pref5 <- x$pct_tx_brk_block > mean(x$pct_tx_brk_block) & x$pct_tx_brk_dist > mean(x$pct_tx_brk_dist)
+  
+  # 6. High education opportunity in the area and strong nearby university systems are preferred
+  x$rank_pref6A <- x$idx_ed_opp == "High" | x$idx_ed_opp == "Very High"
+  x$rank_pref6B <- x$code_land_use_inv == 640
+  
+  # 7. Ability for tech workers to own their own houses is preferred
+  # Improvement required: Variables only convey housing opportunities
+  x$rank_pref7A <- x$idx_housing_opp == "Very High"
+  x$rank_pref7B <- x$idx_housing_opp == "High"
+  x$rank_pref7C <- x$idx_housing_opp == "Moderate"
+  x$rank_pref7D <- x$idx_housing_opp == "Low"
+  x$rank_pref7E <- x$idx_housing_opp == "Very Low"
+  
+  # 8. Fast reliable internet needs to be easily accessible at the site
+  # Needs improvement. Description of nearby constrcution should not be the only way to repressent easily accessible internet. Would not make sense.
+  x$rank_pref8 <- x$descr_const_nearby %like% "existing wireless telecommunication"
+  # 9. Nearby active construction of office type structures is preferred
+  x$rank_pref9 <- x$descr_const_nearby %like% "office"
+
+  #Summation of the scores
+  x$rank_score <- as.integer(as.logical(x$rank_pref1)) +
+                  as.integer(as.logical(x$rank_pref2A)) * 0.5 +
+                  as.integer(as.logical(x$rank_pref2B)) * 0.5 +
+                  as.integer(as.logical(x$rank_pref3A)) * 0.5 +
+                  as.integer(as.logical(x$rank_pref3B)) * 0.5 +
+                  as.integer(as.logical(x$rank_pref4A)) * 0.5 +
+                  as.integer(as.logical(x$rank_pref4B)) * 0.5 +
+                  as.integer(as.logical(x$rank_pref5)) +
+                  ((as.integer(as.logical(x$rank_pref6A)) +
+                    as.integer(as.logical(x$rank_pref6B))) / 2) + 
+                  as.integer(as.logical(x$rank_pref7A)) * 1 +
+                  as.integer(as.logical(x$rank_pref7B)) * 0.8 +
+                  as.integer(as.logical(x$rank_pref7C)) * 0.6 +
+                  as.integer(as.logical(x$rank_pref7D)) * 0.4 +
+                  as.integer(as.logical(x$rank_pref7E)) * 0.2 +
+                  as.integer(as.logical(x$rank_pref8)) +
+                  as.integer(as.logical(x$rank_pref9))
+                  
+  rankedParcels = head(x[order(x$rank_score, decreasing=TRUE), ], y)
+  return(rankedParcels)
+}
+
+rankParcelsWithPref(projDataFiltered3, 10)
+
+```
+```{r}
+# 12.1
+
+# Enumeration of the Top 10 points
+# Tier 1 includes Parcel 6008 alone which has the highest score of 6.4
+# Highlighted as Green Diamond
+dotsToHighlightFIDTier1 = c(6008)
+# Tier 2 includes 4 parcels which have the second highest score of 5.9
+# Highlighted as Blue Triangles
+dotsToHighlightFIDTier2 = c(6005, 15821, 21723, 21739)
+# Tier 3 includes 5 parcels which have the third highest score of 5.4
+# Highlighted as Red Dots
+dotsToHighlightFIDTier3 = c(3552, 3560, 5427, 8043, 11367)
+
+# All top 10 parcels are referred to as a separate subset in subsequent boxplots
+boxplotSubTop10Parcels = c(dotsToHighlightFIDTier1, dotsToHighlightFIDTier2, dotsToHighlightFIDTier3)
+projDataFiltered3$isTop10 <- ifelse(projDataFiltered3$FID %in% boxplotSubTop10Parcels, "Top 10 Parcels", "Other Parcels")
+
+# Graph 1: Total area of buildings on parcel
+plot(projDataFiltered3$FID, projDataFiltered3$area_total_bldgs, col = "grey", cex = 0.5, 
+     main = "Total area of buildings on parcel", 
+     xlab = "FID", ylab = "Area occupied by buildings in square meters", 
+     ylim = c(0, 9999))
+points(6008, projDataFiltered3$area_total_bldgs[projDataFiltered3$FID == 6008], col = "green", pch = 18, cex = 3)
+
+points(dotsToHighlightFIDTier2, projDataFiltered3$area_total_bldgs[projDataFiltered3$FID %in% dotsToHighlightFIDTier2], col = "blue", pch = 17, cex = 1)
+
+points(dotsToHighlightFIDTier3, projDataFiltered3$area_total_bldgs[projDataFiltered3$FID %in% dotsToHighlightFIDTier3], col = "red", pch = 16, cex = 0.75)
+# Mean denoted by the line in dark orange
+abline(h = mean(projDataFiltered3$area_total_bldgs), col = "dark orange")
+# Q1 denoted by the line in purple
+abline(h = quantile(projDataFiltered3$area_total_bldgs, 0.25), col = "purple")
+
+
+boxplot(area_total_bldgs~isTop10, 
+        data = projDataFiltered3,
+        col = c("skyblue", "green"),
+        main = toupper("Total area of buildings on parcel"),
+        xlab = "Type of Parcels", 
+        ylab = "Area occupied in square meters")
+
+
+# Graph 2: Distance	in	meters	from	parcel	to	the	Austin	International	Airport
+plot(projDataFiltered3$FID, projDataFiltered3$dis_m_intl_airpt, col = "grey", cex = 0.5, 
+     main = "Distance in meters from parcel to the Austin International Airport", 
+     xlab = "FID", ylab = "Distance to the Airport in meters")
+points(6008, projDataFiltered3$dis_m_intl_airpt[projDataFiltered3$FID == 6008], col = "green", pch = 18, cex = 3)
+
+points(dotsToHighlightFIDTier2, projDataFiltered3$dis_m_intl_airpt[projDataFiltered3$FID %in% dotsToHighlightFIDTier2], col = "blue", pch = 17, cex = 1)
+
+points(dotsToHighlightFIDTier3, projDataFiltered3$dis_m_intl_airpt[projDataFiltered3$FID %in% dotsToHighlightFIDTier3], col = "red", pch = 16, cex = 0.75)
+# Mean denoted by the line in dark orange
+abline(h = mean(projDataFiltered3$dis_m_intl_airpt), col = "dark orange")
+# Q1 denoted by the line in purple
+abline(h = quantile(projDataFiltered3$dis_m_intl_airpt, 0.25), col = "purple")
+# Q3 denoted by the line in magenta
+abline(h = quantile(projDataFiltered3$dis_m_intl_airpt, 0.75), col = "magenta")
+
+
+boxplot(dis_m_intl_airpt~isTop10, 
+        data = projDataFiltered3,
+        col = c("skyblue", "green"),
+        main = toupper("Distance in meters to the Austin Intl Airport"),
+        xlab = "Type of Parcels", 
+        ylab = "Distance to the Airport in meters")
+
+
+# Graph 3: Percentage of homes per zip affordable for average tech workers
+plot(projDataFiltered3$FID, projDataFiltered3$pct_aff_homes_perzip, col = "grey", cex = 0.5, 
+     main = "Percentage of homes per zip affordable for average tech workers", 
+     xlab = "FID", ylab = "Percentage (%)")
+points(6008, projDataFiltered3$pct_aff_homes_perzip[projDataFiltered3$FID == 6008], col = "green", pch = 18, cex = 3)
+
+points(dotsToHighlightFIDTier2, projDataFiltered3$pct_aff_homes_perzip[projDataFiltered3$FID %in% dotsToHighlightFIDTier2], col = "blue", pch = 17, cex = 1)
+
+points(dotsToHighlightFIDTier3, projDataFiltered3$pct_aff_homes_perzip[projDataFiltered3$FID %in% dotsToHighlightFIDTier3], col = "red", pch = 16, cex = 0.75)
+# Mean denoted by the line in dark orange
+abline(h = mean(projDataFiltered3$pct_aff_homes_perzip), col = "dark orange")
+# Q1 denoted by the line in purple
+abline(h = quantile(projDataFiltered3$pct_aff_homes_perzip, 0.25), col = "purple")
+# Q3 denoted by the line in magenta
+abline(h = quantile(projDataFiltered3$pct_aff_homes_perzip, 0.75), col = "magenta")
+
+boxplot(pct_aff_homes_perzip~isTop10, 
+        data = projDataFiltered3,
+        col = c("skyblue", "green"),
+        main = toupper("Percentage of home affordable for average tech workers"),
+        xlab = "Type of Parcels", 
+        ylab = "Percentage (%)")
+
+# Graph 4: Median household income per zip code
+plot(projDataFiltered3$FID, projDataFiltered3$med_HHI_perzip, col = "grey", cex = 0.5, 
+     main = "Median household income per zip code", 
+     xlab = "FID", ylab = "Household Income ($)")
+points(6008, projDataFiltered3$med_HHI_perzip[projDataFiltered3$FID == 6008], col = "green", pch = 18, cex = 3)
+
+points(dotsToHighlightFIDTier2, projDataFiltered3$med_HHI_perzip[projDataFiltered3$FID %in% dotsToHighlightFIDTier2], col = "blue", pch = 17, cex = 1)
+
+points(dotsToHighlightFIDTier3, projDataFiltered3$med_HHI_perzip[projDataFiltered3$FID %in% dotsToHighlightFIDTier3], col = "red", pch = 16, cex = 0.75)
+# Mean denoted by the line in dark orange
+abline(h = mean(projDataFiltered3$med_HHI_perzip), col = "dark orange")
+# Q1 denoted by the line in purple
+abline(h = quantile(projDataFiltered3$med_HHI_perzip, 0.25), col = "purple")
+# Q3 denoted by the line in magenta
+abline(h = quantile(projDataFiltered3$med_HHI_perzip, 0.75), col = "magenta")
+
+boxplot(med_HHI_perzip~isTop10, 
+        data = projDataFiltered3,
+        col = c("skyblue", "green"),
+        main = toupper("Median household income per zip code"),
+        xlab = "Type of Parcels", 
+        ylab = "Household Income ($)")
+
+# Graph 5: District wide construction perk - tax break
+plot(projDataFiltered3$FID, projDataFiltered3$pct_tx_brk_dist, col = "grey", cex = 0.5, 
+     main = "District wide construction perk - tax break", 
+     xlab = "FID", ylab = "District wide tax break (%)")
+points(6008, projDataFiltered3$pct_tx_brk_dist[projDataFiltered3$FID == 6008], col = "green", pch = 18, cex = 3)
+
+points(dotsToHighlightFIDTier2, projDataFiltered3$pct_tx_brk_dist[projDataFiltered3$FID %in% dotsToHighlightFIDTier2], col = "blue", pch = 17, cex = 1)
+
+points(dotsToHighlightFIDTier3, projDataFiltered3$pct_tx_brk_dist[projDataFiltered3$FID %in% dotsToHighlightFIDTier3], col = "red", pch = 16, cex = 0.75)
+# Mean denoted by the line in dark orange
+abline(h = mean(projDataFiltered3$pct_tx_brk_dist), col = "dark orange")
+# Q1 denoted by the line in purple
+abline(h = quantile(projDataFiltered3$pct_tx_brk_dist, 0.25), col = "purple")
+# Q3 denoted by the line in magenta
+abline(h = quantile(projDataFiltered3$pct_tx_brk_dist, 0.75), col = "magenta")
+
+boxplot(pct_tx_brk_dist~isTop10, 
+        data = projDataFiltered3,
+        col = c("skyblue", "green"),
+        main = toupper("District wide construction perk - tax break"),
+        xlab = "Type of Parcels", 
+        ylab = "District wide tax break (%)")
+
+```
+
+```{r}
+# 12.2
+
+projDataTop10 <- subset(projDataFiltered3, isTop10 == "Top 10 Parcels")
+#summary(projDataTop10)
+
+projDataTop10[,c("FID", "id_block", "land_type", "id_lot", "code_zoning", "code_land_use_inv", "bool_bus_sys", "idx_housing_opp", "idx_ed_opp", "idx_econ_opp", "idx_comp_opp", "descr_const_nearby")]
+
+barplot(table(droplevels(projDataTop10$id_block)), col = "green",
+        main = "Top 10 Block IDs", xlab = "Block IDs", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$land_type)), col = "blue",
+        main = "Top 10 Land Unit Types", xlab = "Land Unit Types", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$id_lot)), col = "red",
+        main = "Top 10 Lot IDs", xlab = "Lot IDs", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$code_zoning)), col = "seagreen",
+        main = "Top 10 Zoning Codes", xlab = "Zoning Codes", ylab = "Occurences")
+
+barplot(table(projDataTop10$code_land_use_inv), col = "royalblue",
+        main = "Top 10 Land Use Inventory Codes", xlab = "Land Use Inventory Codes", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$idx_housing_opp)), col = "firebrick",
+        main = "Top 10 Housing Opp Indexes", xlab = "Housing Opp Indexes", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$idx_ed_opp)), col = "darkseagreen1",
+        main = "Top 10 Education Opp Indexes", xlab = "Education Opp Indexes", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$idx_econ_opp)), col = "deepskyblue",
+        main = "Top 10 Economic Opp Indexes", xlab = "Economic Opp Indexes", ylab = "Occurences")
+
+barplot(table(droplevels(projDataTop10$idx_comp_opp)), col = "darkred",
+        main = "Top 10 Comprehensive Opp Indexes", xlab = "Comprehensive Opp Indexes", ylab = "Occurences")
+
+barplot(table(projDataTop10$descr_const_nearby), col = "darkslategray",
+        main = "Top 10 Nearby Constructions", xlab = "Nearby Constructions", ylab = "Occurences", names.arg = c("telecommunication", "Motel 6", "new multi-family unit", "office leasing"))
+
+
+
+```
+This is the end of the project.
